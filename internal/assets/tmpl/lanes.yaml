@@ -1,0 +1,31 @@
+# lanes.yaml - role search lane definitions
+#
+# Each key is a lane name you can pass to `jl role list --lane <name>`.
+# Values are title substrings matched case-insensitively. Add, remove, or
+# rename lanes freely; jl only validates that the name you supply on the
+# command line exists as a key in this file.
+
+reliability:
+  - site reliability
+  - sre
+  - platform engineer
+  - infrastructure engineer
+  - reliability engineer
+  - devops
+  - cloud engineer
+
+devex:
+  - developer advocate
+  - developer relations
+  - devrel
+  - field cto
+  - devex
+  - developer experience
+  - technical evangelist
+
+fixer:
+  - solutions architect
+  - solutions engineer
+  - field engineer
+  - technical account
+  - customer success engineer

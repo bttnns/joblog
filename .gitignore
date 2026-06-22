@@ -1,0 +1,28 @@
+# Personal workspace: never tracked. The CLI reads/scaffolds this.
+/private/
+
+# Built binary + build output (jl is the current name; joblog kept for old checkouts)
+/jl
+/joblog
+/bin/
+
+# Local tool/editor settings
+*.local
+**/settings.local.json
+.idea/
+.vscode/
+*.swp
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# OS cruft
+**/.DS_Store
+
+# Go
+*.exe
+*.test
+*.out
