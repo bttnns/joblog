@@ -5,7 +5,8 @@ unemployment-compliant, from the command line.**
 
 `jl` is a small, local-first CLI that tracks the companies you are interested in,
 surfaces new and changed roles (scraped by a producer you run, see
-[Install](#install)), logs your job-search activity, and generates your state's
+[Install an ATS fetcher](#install-an-ats-fetcher-producer)), logs your job-search
+activity, and generates your state's
 weekly unemployment work-search report. Your data stays local in a gitignored
 `private/` directory. `jl` does **not** scrape; a producer does.
 
@@ -18,14 +19,30 @@ spends tokens only on judgment), **minimal-dependency**, and **agent-portable**
 
 ## Quickstart
 
+There are two ways to use `jl`: drive it yourself from the command line, or let an
+AI agent drive it for you. Both start from the same base setup, and the agent is
+entirely optional, steps 1 and 2 are a complete job-search workflow on their own.
+
+### 1. Base setup
+
 ```
 go install github.com/bttnns/joblog/cmd/jl@latest
 uv tool install jobhive-py               # a scraper (one of several producers)
 jl init                                  # scaffold the data dir
-jl config set state tx
+jl config set state tx                   # your state, for the weekly report
 jl resume set ~/my-resume.pdf            # store it + make resume.txt
-jl profile build | claude -p             # agent builds your profile from the resume
+```
 
+> For a PDF resume, install poppler's **`pdftotext`** for clean extraction (`brew
+> install poppler`, `apt install poppler-utils`). Without it `jl` falls back to a
+> built-in pure-Go reader that mangles some PDFs. Markdown or JSON resumes need no
+> extra tooling.
+
+### 2. Drive it yourself
+
+Everything `jl` does is a plain command you can run by hand:
+
+```
 # "I saw a company" -> track it and pull its roles
 jl company add https://boards.greenhouse.io/acmecorp   # parses ATS + slug from the URL
 jl fetch acme-corp                       # scrape + import its roles
@@ -36,8 +53,29 @@ jl add --from-role greenhouse:123        # track an application
 jl report                                # this week's work-search report + compliance
 ```
 
-> For the full list of commands, run **`jl --help`** (and `jl <command> --help`),
-> or just **ask your AI agent**: it has the skill.
+> For the full list of commands, run **`jl --help`** (and `jl <command> --help`).
+
+### 3. Let an AI agent drive it (optional)
+
+If you'd rather not run the commands by hand, an AI agent can do it for you, but
+this is purely optional; plenty of people skip it. `jl` never talks to an agent
+itself: it makes no network calls and has no agent inside it. Instead, an agent
+(Claude Code, pi, Codex) runs `jl` *for you* through its skill, ranking roles,
+triaging postings, researching companies, and keeping you compliant, all on top of
+the same commands above.
+
+This is also the only path that needs a profile; if you drive `jl` yourself you can
+skip it entirely. `jl profile build` doesn't call an agent: it just prints a prompt
+built from your resume to stdout, which *you* pipe into whatever agent CLI you have.
+The agent then writes your `profile.md`, the distilled identity it ranks and triages
+roles against.
+
+```
+jl profile build | claude -p "build my profile"   # you pipe the prompt; the agent fills profile.md
+```
+
+See [Using with an AI agent](#using-with-an-ai-agent) to install the skill and for
+the full set of things you can ask it to do.
 
 ## Tracking companies you're interested in
 
@@ -59,30 +97,16 @@ Your agent can drive the whole "I saw `acme-corp`" flow (look up the ATS,
 confirm jobs are fetchable, add it, import its roles) via the `track-company`
 skill mode, and propose new companies from your pattern via `suggest-companies`.
 
-## Build your profile
-
-`jl profile build` scaffolds `profile.md` + `accomplishments.md` and prints a
-ready-to-run prompt on stdout. Pipe it into any agent CLI so the agent fills your
-profile from your resume:
-
-```
-jl profile build | claude -p "build my profile"             # Claude Code
-jl profile build | codex exec "build my profile" < /dev/null # Codex CLI
-jl profile build | pi -p "build my profile"                 # pi
-```
-
-`jl` composes the prompt; the agent writes the files. `jl` never reads or
-understands the resume itself. The exact agent flags vary by tool and version;
-the pipe is the contract. To fill the files in by hand instead, run
-`jl profile edit`; for the raw prompt with nothing appended, `jl profile prompt`.
-
 ## The pipeline
 
 ```
 producer (scrape) -> jl role import -> role ls/changes -> jl add -> jl report
 ```
 
-Filter the index with `jl role ls` (`--since`, `--new`/`--changed`/`--gone`,
+`jl` never scrapes. The producer you pick (jobhive by default, set another with
+`jl config set scraper`) is what fetches the roles and emits them as the ATS job
+JSON `jl` knows how to import; `jl fetch` just shells out to it and ingests the
+result. Filter the index with `jl role ls` (`--since`, `--new`/`--changed`/`--gone`,
 `--employer`, `--remote`, `--title`, `--search`). To narrow to a role type, define
 named keyword bundles ("lanes") in `lanes.yaml` and pass `--lane <name>`; `jl init`
 seeds a few example lanes to edit or replace.
@@ -116,6 +140,24 @@ you want in natural language.
 **Codex**: reference `skill/SKILL.md` from the repo `AGENTS.md` (native auto-load
 is unconfirmed). Pass prompts headless via `codex exec`.
 
+### Build your profile
+
+The profile is the distilled identity the agent ranks and triages roles against, so
+build it first. `jl profile build` scaffolds `profile.md` + `accomplishments.md` and
+prints a ready-to-run prompt on stdout; pipe it into any agent CLI and the agent fills
+your profile from your resume:
+
+```sh
+jl profile build | claude -p "build my profile"             # Claude Code
+jl profile build | codex exec "build my profile" < /dev/null # Codex CLI
+jl profile build | pi -p "build my profile"                 # pi
+```
+
+`jl` composes the prompt; the agent writes the files. `jl` never reads or understands
+the resume itself, and the exact agent flags vary by tool and version: the pipe is the
+contract. To fill the files in by hand instead, run `jl profile edit`; for the raw
+prompt with nothing appended, `jl profile prompt`.
+
 ### What you can ask it to do
 
 | Mode | What to say |
@@ -129,26 +171,11 @@ is unconfirmed). Pass prompts headless via `codex exec`.
 | `research-company` | "Research Acme Corp before my interview" |
 | `weekly-compliance` | "Am I compliant this week?" |
 
-### Headless / pipe usage
+## Install an ATS fetcher (producer)
 
-Any agent CLI can receive a prompt headless from `jl`:
-
-```sh
-jl profile build | claude -p "build my profile"          # Claude Code
-jl profile build | pi -p "build my profile"              # pi
-jl profile build | codex exec "build my profile" < /dev/null  # Codex
-```
-
-The pipe is the contract; exact flags vary by tool and version.
-
-## Install
-
-```
-go install github.com/bttnns/joblog/cmd/jl@latest
-```
-
-`jl` imports ATS job JSON from any producer; it does no scraping itself. Common
-producers:
+`jl` does no scraping itself: it imports the ATS job JSON a producer emits. The
+Quickstart installs the default, jobhive; `jl fetch` shells out to it, and you can
+swap producers with `jl config set scraper`. Common producers:
 
 - **jobhive** ([github.com/kalil0321/ats-scrapers](https://github.com/kalil0321/ats-scrapers),
   PyPI `jobhive-py`), the default, covering many ATS platforms:
@@ -167,7 +194,7 @@ curl '<copied request>' | jl role import - --company acme-corp
 > job boards may violate their terms of service, and the choice of producer and
 > how you run it is yours, not the project's.
 
-## States supported
+## States supported (work-search activity tracking)
 
 `jl` ships compliance profiles for 13 states: **TX, CA, FL, NY, PA, IL, OH, GA,
 NC, MI, NJ, VA, WA**. Set your active state with `jl config set state <code>`.
@@ -184,6 +211,14 @@ command and makes no network calls).
 Everything personal lives in a gitignored `private/` directory (or the XDG data
 path, `~/.local/share/joblog`, for public users). Nothing personal is committed.
 The repo itself is public-safe: all examples here are synthetic (`acme-corp`).
+
+`jl` itself makes no network calls, so on its own your data never leaves your
+machine. The moment you bring in an AI agent (step 3 of the Quickstart), that
+changes: piping `jl profile build` to an agent, or letting the skill drive `jl`,
+sends your resume, profile, and whatever else the agent reads to that model. Your
+privacy then depends entirely on the agent and provider you choose (their data
+retention, training, and logging policies), not on `jl`. If that matters to you,
+pick the agent accordingly or skip the AI path and drive `jl` by hand.
 
 ```
 profile.md         who you are and what you want next
