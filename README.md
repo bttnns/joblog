@@ -21,12 +21,38 @@ spends tokens only on judgment), **minimal-dependency**, and **agent-portable**
 
 There are two ways to use `jl`: drive it yourself from the command line, or let an
 AI agent drive it for you. Both start from the same base setup, and the agent is
-entirely optional, steps 1 and 2 are a complete job-search workflow on their own.
+entirely optional, steps 1–3 are a complete job-search workflow on their own.
 
-### 1. Base setup
+### 1. Install `jl`
+
+Download the prebuilt binary for your platform from the
+[latest release](https://github.com/bttnns/joblog/releases/latest) and pick the
+archive that matches your OS and CPU:
+
+| Platform | Archive |
+|----------|---------|
+| macOS, Apple Silicon (M1/M2/M3…) | `jl_<version>_darwin_arm64.tar.gz` |
+| macOS, Intel | `jl_<version>_darwin_amd64.tar.gz` |
+| Linux, x86-64 | `jl_<version>_linux_amd64.tar.gz` |
+| Linux, ARM64 (e.g. AWS Graviton, Raspberry Pi) | `jl_<version>_linux_arm64.tar.gz` |
+
+Then extract it and put `jl` somewhere on your `PATH`:
+
+```sh
+tar -xzf jl_*_*.tar.gz            # unpacks ./jl (plus LICENSE, README.md)
+sudo mv jl /usr/local/bin/        # or any dir on your PATH
+jl version
+```
+
+> On macOS, Gatekeeper may quarantine an unsigned download. If it refuses to open,
+> clear the flag: `xattr -d com.apple.quarantine /usr/local/bin/jl`.
+>
+> Prefer to build from source? With a Go 1.25+ toolchain installed:
+> `go install github.com/bttnns/joblog/cmd/jl@latest`.
+
+### 2. Base setup
 
 ```
-go install github.com/bttnns/joblog/cmd/jl@latest
 uv tool install jobhive-py               # a scraper (one of several producers)
 jl init                                  # scaffold the data dir
 jl config set state tx                   # your state, for the weekly report
@@ -38,7 +64,7 @@ jl resume set ~/my-resume.pdf            # store it + make resume.txt
 > built-in pure-Go reader that mangles some PDFs. Markdown or JSON resumes need no
 > extra tooling.
 
-### 2. Drive it yourself
+### 3. Drive it yourself
 
 Everything `jl` does is a plain command you can run by hand:
 
@@ -55,7 +81,7 @@ jl report                                # this week's work-search report + comp
 
 > For the full list of commands, run **`jl --help`** (and `jl <command> --help`).
 
-### 3. Let an AI agent drive it (optional)
+### 4. Let an AI agent drive it (optional)
 
 If you'd rather not run the commands by hand, an AI agent can do it for you, but
 this is purely optional; plenty of people skip it. `jl` never talks to an agent
@@ -213,7 +239,7 @@ path, `~/.local/share/joblog`, for public users). Nothing personal is committed.
 The repo itself is public-safe: all examples here are synthetic (`acme-corp`).
 
 `jl` itself makes no network calls, so on its own your data never leaves your
-machine. The moment you bring in an AI agent (step 3 of the Quickstart), that
+machine. The moment you bring in an AI agent (step 4 of the Quickstart), that
 changes: piping `jl profile build` to an agent, or letting the skill drive `jl`,
 sends your resume, profile, and whatever else the agent reads to that model. Your
 privacy then depends entirely on the agent and provider you choose (their data
