@@ -46,7 +46,11 @@ tell the user how. The fastest check is `jl status`: it prints a checklist of
 every setup step (resume, state, profile, companies, roles, weekly compliance)
 marked done or todo, each todo showing the next command to run.
 
-1. **jl installed**: `jl version`. If absent:
+1. **jl installed**: `jl version`. If absent, point the user at the prebuilt
+   binary for their platform on the
+   [latest release](https://github.com/bttnns/joblog/releases/latest)
+   (`jl_<version>_{darwin,linux}_{amd64,arm64}.tar.gz`): download, `tar -xzf`,
+   and move `jl` onto their `PATH`. From-source fallback (needs Go 1.25+):
    `go install github.com/bttnns/joblog/cmd/jl@latest`.
 2. **A scraper installed** (the default producer): jobhive, `jobhive --help`. If
    absent: `uv tool install jobhive-py` (source: `github.com/kalil0321/ats-scrapers`).
